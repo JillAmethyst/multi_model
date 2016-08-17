@@ -1,0 +1,29 @@
+{
+    "atom_num" : 4,
+    "class_num" : 1400,
+    "N" : 29676,
+    "S" : 16,
+    "N_test" : 27907,
+    "n" : [100, 100, 100,100, 100,100,100,100,100,100,100,100,100,100,100,100],
+    "XArr_filename" : "lda1213all_10.dat",
+    "YArr_filename" : "lda1011_10.dat",
+    "trls_filename" : "trls1213_100.dat",
+    "ttls_filename" : "ttls1011_100.dat",
+
+    "global_lambda" : 0.04,
+    "global_lambda2" : 0,
+    "global_iterADMM" : 500,
+    "global_rho" : 0.1,
+    "global_iterUnsupDic" : 5,
+    "global_iterSupDic" : 10,
+    "global_batchSize" : 512,
+    "global_ro" : 5,
+    "global_nuQuad" : 1e-8,
+    "global_iterQuad" : 300,
+    "global_batchSizeQuad" : 100,
+    "global_roQuad" : 20,
+
+    "global_computeCost" : false,
+    "global_ADMMwithCG" : true,
+    "global_intercept" : false
+}

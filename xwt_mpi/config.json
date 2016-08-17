@@ -1,0 +1,29 @@
+{
+    "atom_num" : 4,
+    "class_num" : 11,
+    "N" : 297,
+    "S" : 5,
+    "N_test" : 33,
+    "n" : [2000, 2000, 2000, 2000, 2000],
+    "XArr_filename" : "xarr.dat",
+    "YArr_filename" : "yarr.dat",
+    "trls_filename" : "trls.dat",
+    "ttls_filename" : "ttls.dat",
+
+    "global_lambda" : 0.04,
+    "global_lambda2" : 0,
+    "global_iterADMM" : 1000,
+    "global_rho" : 0.1,
+    "global_iterUnsupDic" : 5,
+    "global_iterSupDic" : 10,
+    "global_batchSize" : 99,
+    "global_ro" : 5,
+    "global_nuQuad" : 1e-8,
+    "global_iterQuad" : 300,
+    "global_batchSizeQuad" : 100,
+    "global_roQuad" : 20,
+
+    "global_computeCost" : true,
+    "global_ADMMwithCG" : true,
+    "global_intercept" : false
+}

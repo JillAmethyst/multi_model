@@ -1,0 +1,29 @@
+{
+    "atom_num" : 4,
+    "class_num" : 100,
+    "N" : 500,
+    "S" : 16,
+    "N_test" : 500,
+    "n" : [200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200,200 ],
+    "XArr_filename" : "XArrCarc_500People_x_3200_500.dat",
+    "YArr_filename" : "YArrCarc_500People_x_3200_500.dat",
+    "trls_filename" : "trlsCarc_500People_x_3200_500.dat",
+    "ttls_filename" : "ttlsCarc_500People_x_3200_500.dat",
+
+    "global_lambda" : 0.001,
+    "global_lambda2" : 0,
+    "global_iterADMM" : 1000,
+    "global_rho" : 0.01,
+    "global_iterUnsupDic" : 5,
+    "global_iterSupDic" : 10,
+    "global_batchSize" : 100,
+    "global_ro" : 100,
+    "global_nuQuad" : 1e-8,
+    "global_iterQuad" : 1,
+    "global_batchSizeQuad" : 100,
+    "global_roQuad" : 120,
+
+    "global_computeCost" : false,
+    "global_ADMMwithCG" : true,
+    "global_intercept" : false
+}
