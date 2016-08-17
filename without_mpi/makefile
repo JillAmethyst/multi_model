@@ -17,11 +17,11 @@ INC_PATH += -I./include
 INC_PATH += -I../../bin/include
 
 # Basic parameters
-#CXX = g++
+CXX = g++
 #CXX = icc   -mkl  -m64 -w   -Wl,--start-group "/share/home/guan/intel/mkl/lib/intel64"/libmkl_intel_lp64.a "/share/home/guan/intel/mkl/lib/intel64"/libmkl_sequential.a "/share/home/guan/intel/mkl/lib/intel64"/libmkl_core.a -Wl,--end-group  -lpthread -ldl -lm 
 #CXX = icc -mkl
 #CXX = mpicxx  -I/share/home/guan/intel/compilers_and_libraries_2016.3.210/linux/mkl/include/   -m64 -w   -Wl,--start-group "/share/home/guan/intel/mkl/lib/intel64"/libmkl_intel_lp64.a "/share/home/guan/intel/mkl/lib/intel64"/libmkl_sequential.a "/share/home/guan/intel/mkl/lib/intel64"/libmkl_core.a -Wl,--end-group  -lpthread -ldl -lm  /share/home/guan/intel/compilers_and_libraries_2016.3.210/linux/mkl/lib/intel64/libmkl_blacs_intelmpi_lp64.a
-CXX = mpicxx
+#CXX = mpicxx
 CXX_FLAGS =  -DUSE_AVX_INSTRUCTIONS -DUSE_SSE2_INSTRUCTIONS -DUSE_SSE4_INSTRUCTIONS #-DDLIB_USE_LAPACK -DDLIB_USE_BLAS #-DEIGEN_USE_MKL_ALL  -I/share/home/guan/intel/compilers_and_libraries_2016.3.210/linux/mkl/include/ 
 LINK_FLAGS = -L/share/home/guan/bin/lib -lglog /share/home/guan/OpenBlasMPI/lib/libopenblas_haswellp-r0.2.18.a /share/home/guan/intel/compilers_and_libraries_2016.3.210/linux/mkl/lib/intel64/libmkl_blacs_intelmpi_lp64.a
 
@@ -41,7 +41,7 @@ else
     CXX_FLAGS += -O2
 endif
 
-SRC = ADMM_Dlib.cpp ClassificationMultiClassDecFuxJoint.cpp data_function.cpp matlab_function.cpp OnlineUnsupTaskDrivDicLeaJointC.cpp ComputeCost.cpp SGDMultiClassQuadC.cpp multimodal_config_parser.cpp test_main.cpp
+SRC = ADMM_Dlib.cpp ClassificationMultiClassDecFuxJoint.cpp data_function.cpp matlab_function.cpp OnlineUnsupTaskDrivDicLeaJointC.cpp OnlineSupTaskDrivDicLeaDecFusJointQuadC.cpp ComputeCost.cpp SGDMultiClassQuadC.cpp multimodal_config_parser.cpp test_main.cpp
 OBJ = $(SRC:.cpp=.o)
 
 test: $(OBJ)

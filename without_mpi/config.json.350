@@ -1,0 +1,28 @@
+{
+    "atom_num" : 4,
+    "class_num" : 350,
+    "N" : 20852,
+    "S" : 16,
+    "N_test" : 6164,
+    "n" : [10, 10, 10, 10, 10,10,10,10,10,10,10,10,10,10,10,10],
+    "XArr_filename" : "XArr10_350.dat",
+    "YArr_filename" : "YArr10_350.dat",
+    "trls_filename" : "trls_350.dat",
+    "ttls_filename" : "ttls_350.dat",
+
+    "global_lambda" : 0.04,
+    "global_lambda2" : 0,
+    "global_iterADMM" : 500,
+    "global_rho" : 0.1,
+    "global_iterUnsupDic" : 5,
+    "global_iterSupDic" : 10,
+    "global_batchSize" : 1000,
+    "global_ro" : 5,
+    "global_nuQuad" : 1e-8,
+    "global_iterQuad" : 300,
+    "global_batchSizeQuad" : 1000,
+    "global_roQuad" : 20,
+
+    "global_computeCost" : true,
+    "global_intercept" : false
+}
