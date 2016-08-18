@@ -2,6 +2,7 @@
 #define __CLASSIFICATIONMULTICLASSDECFUXJOINT_H__
 
 #include "OnlineUnsupTaskDrivDicLeaJointC.hpp"
+#include "OnlineSupTaskDrivDicLeaDecFusJointQuadC.hpp"
 #include "SGDMultiClassQuadC.hpp"
 #include "data_function.hpp"
 #include "matlab_function.hpp"
