@@ -95,9 +95,9 @@ void ClassificationMultiClassDecFuxJoint(const DataMat& XArr,
     std::vector<DataMat> modelQuadUnsup_W(S);
     std::vector<DataMat> modelQuadUnsup_b(S);
 
-    for(int s = 0; s<S; i++){
-      modelQuadUnsup_W = zeros_matrix<Dtype>(d, number_classes);
-      modelQuadUnsup_b = zeros_matrix<Dtype>(number_classes,1);
+    for(int s = 0; s<S; s++){
+      modelQuadUnsup_W[s] = zeros_matrix<Dtype>(d, number_classes);
+      modelQuadUnsup_b[s] = zeros_matrix<Dtype>(number_classes,1);
     }
     // DataMat modelQuadUnsup_W = zeros_matrix<Dtype>(d * S, number_classes);
     // DataMat modelQuadUnsup_b = zeros_matrix<Dtype>(number_classes, S);
@@ -188,7 +188,7 @@ void ClassificationMultiClassDecFuxJoint(const DataMat& XArr,
   // classify training samples
     IntVec predictedLableTrainUnsup(N);
     predictedLableTrainUnsup = 0;
-    double sum = 0;
+    double sum_classify = 0;
 
   /******
   // const char* a1_filename = "modelOutTrainUnsup.dat";
@@ -200,15 +200,15 @@ void ClassificationMultiClassDecFuxJoint(const DataMat& XArr,
       matrix<double, 0, 1> colm_temp;
       colm_temp = colm(modelOutTrainUnsup, i);
       predictedLableTrainUnsup(i) = min_idx_cpp(colm_temp);
-      sum += predictedLableTrainUnsup(i) == trls(i);
+      sum_classify += predictedLableTrainUnsup(i) == trls(i);
     }
-    double CCRQuadTrainUnsup = sum / N * 100;
+    double CCRQuadTrainUnsup = sum_classify / N * 100;
     cout << "train_unsup:" << CCRQuadTrainUnsup << endl;
 
   // classify testing samples
     IntVec predictedLableTestUnsup(N_test);
     predictedLableTestUnsup = 0;
-    sum = 0;
+    sum_classify = 0;
 
   /************************
    const char* a1_filename = "modelOutTestUnsup.dat";
@@ -220,9 +220,9 @@ void ClassificationMultiClassDecFuxJoint(const DataMat& XArr,
       matrix<double, 0, 1> colm_temp;
       colm_temp = colm(modelOutTestUnsup, i);
       predictedLableTestUnsup(i) = min_idx_cpp(colm_temp);
-      sum += predictedLableTestUnsup(i) == ttls(i);
+      sum_classify += predictedLableTestUnsup(i) == ttls(i);
     }
-    double CCRQuadTestUnsup = sum / N_test * 100;
+    double CCRQuadTestUnsup = sum_classify / N_test * 100;
     cout << "test_unsup:" << CCRQuadTestUnsup << endl;
 
 
@@ -233,7 +233,7 @@ void ClassificationMultiClassDecFuxJoint(const DataMat& XArr,
     DataMat DSup(sum(n), d);
 
     OnlineSupTaskDrivDicLeaDecFusJointQuadC(XArr, outputVectorTrain, 
-      n, d, DUnsup, DSup, modelQuadUnsup_W, modelQuadUnsup_b);
+      n, d, DUnsup, DSup, modelQuadUnsup_W, modelQuadUnsup_b[0]);
 
     /*************************
     train sample admm feature
@@ -256,13 +256,6 @@ void ClassificationMultiClassDecFuxJoint(const DataMat& XArr,
     /*************************************
     let admm feature multiple with W and b
     *************************************/
-
-
-    DataMat outputVectorTrain = zeros_matrix<Dtype>(number_classes, N);
-
-    for (int j = 0; j < N; ++j) {
-      outputVectorTrain(trls(j), j) = 1;
-    }
 
     DataMat modelOutTrainSup = zeros_matrix<Dtype>(number_classes, N);
     DataMat modelOutTestSup = zeros_matrix<Dtype>(number_classes, N_test);
@@ -320,29 +313,29 @@ void ClassificationMultiClassDecFuxJoint(const DataMat& XArr,
 
     IntVec predictedLableTrainSup(N);
     predictedLableTrainSup = 0;
-    double sum = 0;
+    sum_classify = 0;
 
     for (int i = 0; i < N; i++) {
       matrix<double, 0, 1> colm_temp;
       colm_temp = colm(modelOutTrainSup, i);
       predictedLableTrainSup(i) = min_idx_cpp(colm_temp);
-      sum += predictedLableTrainSup(i) == trls(i);
+      sum_classify += predictedLableTrainSup(i) == trls(i);
     }
-    double CCRQuadTrainSup = sum / N * 100;
+    double CCRQuadTrainSup = sum_classify / N * 100;
     cout << "train_Sup:" << CCRQuadTrainSup << endl;
 
   // classify testing samples
     IntVec predictedLableTestSup(N_test);
     predictedLableTestSup = 0;
-    sum = 0;
+    sum_classify = 0;
 
     for (int i = 0; i < N_test; i++) {
       matrix<double, 0, 1> colm_temp;
       colm_temp = colm(modelOutTestSup, i);
       predictedLableTestSup(i) = min_idx_cpp(colm_temp);
-      sum += predictedLableTestSup(i) == ttls(i);
+      sum_classify += predictedLableTestSup(i) == ttls(i);
     }
-    double CCRQuadTestSup = sum / N_test * 100;
+    double CCRQuadTestSup = sum_classify / N_test * 100;
     cout << "test_Sup:" << CCRQuadTestSup << endl;
 
 
