@@ -31,6 +31,7 @@ void MultimodalConfigParser<T>::ParseFromFile(const char* file_name) {
   N_ = d["N"].GetInt();
   S_ = d["S"].GetInt();
   N_test_ = d["N_test"].GetInt();
+  modalDim_ = d["modalDim"].GetInt();
   const rapidjson::Value& n_val = d["n"];
   n_.clear();
   n_.resize(S_);

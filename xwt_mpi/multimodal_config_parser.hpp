@@ -43,6 +43,7 @@ class MultimodalConfigParser {
   inline int N() const { return N_; };
   inline int S() const { return S_; };
   inline int N_test() const { return N_test_; }
+  inline int modalDim() const { return modalDim_; }
   inline const std::vector<int>& n() const { return n_; };
   inline std::string XArr_filename() { return XArr_filename_; }
   inline std::string YArr_filename() { return YArr_filename_; }
@@ -60,6 +61,7 @@ class MultimodalConfigParser {
   int N_;
   int S_;
   int N_test_;
+  int modalDim_;
   std::vector<int> n_;
 
   std::string XArr_filename_;

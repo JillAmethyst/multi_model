@@ -2,8 +2,12 @@
 #include <mpi.h>
 
 int OnlineUnsupTaskDrivDicLeaJointC(const DataMat& XArr, const IntVec& trls,
-  const IntVec& n, const int d, DataMat& D, int rank, int ProcSize) {
+  const IntVec& n, const int d, DataMat& D, const int N) {
   cout <<" start "<<endl;
+  int rank, ProcSize;
+  MPI_Comm_size(MPI_COMM_WORLD,&ProcSize);
+  MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+
   /**********************  
   pass global parameters
   **********************/
@@ -11,7 +15,8 @@ int OnlineUnsupTaskDrivDicLeaJointC(const DataMat& XArr, const IntVec& trls,
   MultimodalConfigParser<Dtype>::Instance();
   CHECK(config.Initialized()) << "config has not been Initialzed";
   const int iter = config.global_iterUnsupDic();
-  const int batchSize = config.global_batchSize();
+  const int batchSize_config = config.global_batchSize();
+  const int batchSize = batchSize_config - batchSize_config%ProcSize;
   const int iterADMM = config.global_iterADMM();
   const Dtype rho = config.global_rho();
   const Dtype lambda = config.global_lambda();
@@ -25,7 +30,7 @@ int OnlineUnsupTaskDrivDicLeaJointC(const DataMat& XArr, const IntVec& trls,
   const int number_classes = uniqtrls.size();
   const int sum_n = sum(n);
   const int S = n.size();
-  const int N = XArr.nc();
+  // const int N = XArr.nc();
   int dicIterations = 10;
 
   CHECK(d <= N) << "Number of dictionary columns should be smaller than or "
@@ -94,8 +99,6 @@ if(! ADMMwithCG) {
 
      DataMat X0 = zeros_matrix<Dtype> (D.nr(),batchSize/ProcSize);
      DataMat Alpha0 = zeros_matrix<Dtype>(S * d,batchSize/ProcSize);
-
-//for(int testI = 0 ; testI < XArr_sample.size();testI++) XArr_sample(testI) = testI;
 
      MPI_Scatter(XArr_sample.begin(),XArr_sample.nr()*batchSize/ProcSize,MPI_DOUBLE,X0.begin(),X0.nr()*batchSize/ProcSize,MPI_DOUBLE,root,MPI_COMM_WORLD);
 

@@ -24,6 +24,12 @@ int main(int argc, char* argv[]) {
    double timeStart = MPI_Wtime();
     double timeFinish;
 */
+  const char* DUnsupFileName = argv[2];
+
+  int rank, ProcSize;
+  MPI_Init(NULL,NULL);
+  MPI_Comm_size(MPI_COMM_WORLD,&ProcSize);
+  MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 
   static MultimodalConfigParser<Dtype>& config =
     MultimodalConfigParser<Dtype>::Instance();
@@ -31,11 +37,15 @@ int main(int argc, char* argv[]) {
 
   int atom_num = config.atom_num();
   int class_num = config.class_num();
+  int modalDim = config.modalDim();
 
   int d = class_num * atom_num;
-  int N = config.N();
   int S = config.S();
-  int N_test = config.N_test();
+  int N_config = config.N();
+  int N_test_config = config.N_test();  
+  const int N = N_config - N_config % ProcSize;
+  const int N_test = N_test_config - N_test_config % ProcSize;
+
   const std::vector<int>& n_val = config.n();
   IntVec n = mat(n_val.data(), S);
 
@@ -45,26 +55,35 @@ int main(int argc, char* argv[]) {
   const char* ttls_filename = config.ttls_filename().c_str();
 
   // init variables
-  IntVec trls(N);
-  IntVec ttls(N_test);
+  IntVec trls_config(N);
+  IntVec ttls_config(N_test);
   DataMat trls_tmp(N, 1);
   DataMat ttls_tmp(N_test, 1);
-  DataMat XArr(sum(n), N);
-  DataMat YArr(sum(n), N_test);
+  DataMat XArr_config(sum(n), N);
+  DataMat YArr_config(sum(n), N_test);
 
-  LoadDataFromFile(XArr_filename, XArr);
-  LoadDataFromFile(YArr_filename, YArr);
+  LoadDataFromFile(XArr_filename, XArr_config);
+  LoadDataFromFile(YArr_filename, YArr_config);
   LoadDataFromFile(trls_filename, trls_tmp);
   LoadDataFromFile(ttls_filename, ttls_tmp);
-  trls = matrix_cast<int>(trls_tmp) - 1;
-  ttls = matrix_cast<int>(ttls_tmp) - 1;
+  trls_config = matrix_cast<int>(trls_tmp) - 1;
+  ttls_config = matrix_cast<int>(ttls_tmp) - 1;
 
-  // std::cout << "trls:\n" << subm(trls, range(0,30),range(0,0)) << std::endl;
-  // std::cout << "XArr:\n" << subm(XArr, range(0,9),range(0,9)) << std::endl;
-  // std::cout << "YArr:\n" << subm(YArr, range(0,9),range(0,9)) << std::endl;
+  const IntVec trls  = colm(trls_config, range(0, N - 1));
+  const IntVec ttls  = colm(ttls_config, range(0, N_test -1));
+
+  DataMat XArrTmp(sum(n), N);
+  DataMat YArrTmp(sum(n), N_test);
+  cout<<"n(0):"<<n(0)<<endl;
+  for(int i = 0; i<S; i++){
+    set_rowm(XArrTmp, range(0+i*modalDim, n(0)+i*modalDim) ) = subm(XArr_config, range(0+i*modalDim, n(0)+i*modalDim), range(0, N - 1));
+    set_rowm(YArrTmp, range(0+i*modalDim, n(0)+i*modalDim) ) = subm(YArr_config, range(0+i*modalDim, n(0)+i*modalDim), range(0, N_test - 1));
+  }
+  const DataMat XArr = XArrTmp;
+  const DataMat YArr = YArrTmp;
 
   ClassificationMultiClassDecFuxJoint(
-    XArr, trls, YArr, ttls, N, N_test, d, S, n);
+    XArr, trls, YArr, ttls, N, N_test, d, S, n, DUnsupFileName);
 /*
     if (myid == 0)
     {

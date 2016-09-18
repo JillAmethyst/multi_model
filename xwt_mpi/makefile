@@ -41,7 +41,7 @@ else
     CXX_FLAGS += -O2
 endif
 
-SRC = ADMM_Dlib.cpp ClassificationMultiClassDecFuxJoint.cpp data_function.cpp matlab_function.cpp OnlineUnsupTaskDrivDicLeaJointC.cpp ComputeCost.cpp SGDMultiClassQuadC.cpp multimodal_config_parser.cpp test_main.cpp
+SRC = ADMM_Dlib.cpp ClassificationMultiClassDecFuxJoint.cpp data_function.cpp matlab_function.cpp OnlineUnsupTaskDrivDicLeaJointC.cpp finalADMMfeature.cpp computeWandB.cpp ComputeCost.cpp SGDMultiClassQuadC.cpp multimodal_config_parser.cpp test_main.cpp
 OBJ = $(SRC:.cpp=.o)
 
 test: $(OBJ)

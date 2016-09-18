@@ -1,14 +1,12 @@
 #include "ClassificationMultiClassDecFuxJoint.hpp"
-#include <mpi.h>
 
 void ClassificationMultiClassDecFuxJoint(const DataMat& XArr,
   const IntVec& trls, const DataMat& YArr, const IntVec& ttls, const int N,
-  const int N_test, const int d, const int S, const IntVec& n) {
+  const int N_test, const int d, const int S, const IntVec& n, const char* DUnsupFileName) {
 
   /**********************
   pass global parameters
   **********************/
-
   static MultimodalConfigParser<Dtype>& config =
   MultimodalConfigParser<Dtype>::Instance();
 
@@ -16,24 +14,19 @@ void ClassificationMultiClassDecFuxJoint(const DataMat& XArr,
   const Dtype rho = config.global_rho();
   const Dtype lambda = config.global_lambda();
   const int iterADMM = config.global_iterADMM();
-  const bool ADMMwithCG = config.global_ADMMwithCG();
+  const bool ADMMwithCG = config.global_ADMMwithCG(); 
 
   const Dtype tolCG = 1e-5;
   const int iterCG = 20;
 
   IntVec uniqtrls = unique_cpp(trls); 
-  int number_classes = uniqtrls.nr();
+  const int number_classes = uniqtrls.nr();
 
   DataMat DUnsup(sum(n), d);
-
-  /*************************
-          start MPI
-  *************************/
 
   #define root 0
 
   int rank, ProcSize;
-  MPI_Init(NULL,NULL);
   MPI_Comm_size(MPI_COMM_WORLD,&ProcSize);
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 
@@ -41,205 +34,143 @@ void ClassificationMultiClassDecFuxJoint(const DataMat& XArr,
      Unsup D computation
   *************************/
 
-  OnlineUnsupTaskDrivDicLeaJointC(XArr, trls, n, d, DUnsup, rank, ProcSize);
+  // OnlineUnsupTaskDrivDicLeaJointC(XArr, trls, n, d, DUnsup, N);
+
+  // const char* a1_filename = "./DUnsup/DUnsupAtom4Carc_1400People_x_160.dat";
+  // const char* a1_filename = "./DUnsup/DUnsupOrigin297.dat";
+  LoadDataFromFile(DUnsupFileName, DUnsup);
 
   // if (rank == root) {
-  //   WriteDataToFile("DUnsupAtom4Carc_500People_x_3200_500.dat", DUnsup);
-  // }
-
+  //   WriteDataToFile(DUnsupFileName, DUnsup);
+  // } 
   /*************************
-     L U computation
-  *************************/
-
-  DataMat L(d * S, d);
-  DataMat U(d * S, d);
-
-  if ( ! ADMMwithCG ){
-    int temp = 0;
-    for (int s = 0; s < S; s++) {
-      DataMat temp_L = factor_cpp(rowm(DUnsup, range(temp, temp + n(s) - 1)), rho);
-      set_rowm(L, range(s * d, (s + 1) * d - 1)) = temp_L;
-      set_rowm(U, range(s * d, (s + 1) * d - 1)) = trans(temp_L);
-      temp += n(s);
-    }
-  }
-
-
-  /*************************
-  train sample admm feature
+     sample admm feature
   *************************/
   DataMat Atr;
-
-  if (rank == root) {
-    Atr = zeros_matrix<Dtype>(d * S, N);
-  }
-
-  DataMat Xtr =zeros_matrix<Dtype>(DUnsup.nr(),N/ProcSize);
-  DataMat Alpha_tr = zeros_matrix<Dtype>(S * d,N/ProcSize);
-
-  MPI_Scatter(XArr.begin(),XArr.nr()*N/ProcSize,MPI_DOUBLE,Xtr.begin(),Xtr.nr()*N/ProcSize,MPI_DOUBLE,root,MPI_COMM_WORLD);
-
-  if ( ADMMwithCG )
-    ADMM_CG_xwt(DUnsup, Xtr, n, S, lambda, rho, iterADMM, Alpha_tr, tolCG, iterCG);
-  else 
-    ADMM_Dlib(DUnsup, Xtr, n, lambda, rho, L, U, iterADMM, Alpha_tr);
-
-  MPI_Barrier(MPI_COMM_WORLD);
-
-  MPI_Gather(Alpha_tr.begin(),Alpha_tr.nr()*N/ProcSize,MPI_DOUBLE,Atr.begin(),S*d*N/ProcSize,MPI_DOUBLE,root,MPI_COMM_WORLD);
-
-
-  /*************************
-  test sample admm feature
-  *************************/
   DataMat Att;
 
-  if (rank == root) {
-    Att = zeros_matrix<Dtype>(d * S, N_test);
-  }
-
-  DataMat Xtt =zeros_matrix<Dtype>(DUnsup.nr(),N_test/ProcSize);
-  DataMat Alpha_tt = zeros_matrix<Dtype>(S * d,N_test/ProcSize);
-
-  MPI_Scatter(YArr.begin(),YArr.nr()*N_test/ProcSize,MPI_DOUBLE,Xtt.begin(),Xtt.nr()*N_test/ProcSize,MPI_DOUBLE,root,MPI_COMM_WORLD);
-
-  if ( ADMMwithCG )
-    ADMM_CG_xwt(DUnsup, Xtt, n, S, lambda, rho, iterADMM, Alpha_tt, tolCG, iterCG);
-  else 
-    ADMM_Dlib(DUnsup, Xtt, n, lambda, rho, L, U, iterADMM, Alpha_tt);
-
-  MPI_Barrier(MPI_COMM_WORLD);
-
-  MPI_Gather(Alpha_tt.begin(),Alpha_tt.nr()*N_test/ProcSize,MPI_DOUBLE,Att.begin(),S*d*N_test/ProcSize,MPI_DOUBLE,root,MPI_COMM_WORLD);
-
+  finalADMMfeature(XArr, YArr, DUnsup, n, d, lambda, rho, iterADMM, tolCG, iterCG, ADMMwithCG, Atr, Att);
 
   /*************************
        compute W and b
   *************************/
-  if ( rank == root ) {
-    DataMat outputVectorTrain = zeros_matrix<Dtype>(number_classes, N);
+  std::vector<DataMat> modelQuadUnsup_W(S);
+  std::vector<DataMat> modelQuadUnsup_b(S);
 
-    for (int j = 0; j < N; ++j) {
-      outputVectorTrain(trls(j), j) = 1;
-    }
-
-    DataMat modelOutTrainUnsup = zeros_matrix<Dtype>(number_classes, N);
-    DataMat modelOutTestUnsup = zeros_matrix<Dtype>(number_classes, N_test);
-
-    std::vector<DataMat> modelQuadUnsup_W(S);
-    std::vector<DataMat> modelQuadUnsup_b(S);
-
-    for(int s = 0; s<S; s++){
-    modelQuadUnsup_W[s] = zeros_matrix<Dtype>(d, number_classes);
-    modelQuadUnsup_b[s] = zeros_matrix<Dtype>(number_classes,1);
-    }
-
-
-#ifdef USE_OMP
-#pragma omp parallel for
-#endif
-    for (int s = 0; s < S; ++s) {
-      int temp = d*s;
-      std::cout << "s:" << s << std::endl;
-      DataMat temp_Atr(d, N);
-      DataMat temp_W = zeros_matrix<Dtype>(d, number_classes);
-      DataMat temp_b = zeros_matrix<Dtype>(number_classes, 1);
-
-      temp_Atr = rowm(Atr, range(temp, temp + d - 1));
-
-      SGDMultiClassQuadC(temp_Atr, outputVectorTrain, temp_W, temp_b);
-
-      modelQuadUnsup_W[s] = temp_W;
-      modelQuadUnsup_b[s] = temp_b;
-
-
-      /*******************************
-      compute modelOut Unsup use W*A+b
-      *******************************/
-
-      /////////////// Atr
-      DataMat modelOutTrainTemp(number_classes, N);
-      modelOutTrainTemp = trans(temp_W) * temp_Atr + repmat_cpp(temp_b, 1, N);
-
-      for (int j = 0; j < N; j++) {
-        DataMat moTrj = colm(modelOutTrainTemp, j);
-        DataMat temp_j =
-        repmat_cpp(moTrj, 1, number_classes) -
-        identity_matrix<Dtype>(number_classes);
-        temp_j = pointwise_multiply(temp_j, temp_j);
-        set_colm(modelOutTrainUnsup, j) =
-        colm(modelOutTrainUnsup, j) + trans(sum_cpp(temp_j));
-      }
-
-      /////////////// Att
-      DataMat temp_Att(d, N_test);
-      temp_Att = rowm(Att, range(temp, temp + d - 1));
-
-      DataMat modelOutTestTemp(number_classes, N_test);
-      modelOutTestTemp = trans(temp_W) * temp_Att + repmat_cpp(temp_b, 1, N);
-
-      for (int j = 0; j < N_test; j++) {
-        DataMat moTej = colm(modelOutTestTemp, j);
-        DataMat temp_j =
-        repmat_cpp(moTej, 1, number_classes) -
-        identity_matrix<Dtype>(number_classes);
-        temp_j = pointwise_multiply(temp_j, temp_j);
-        set_colm(modelOutTestUnsup, j) =
-        colm(modelOutTestUnsup, j) + trans(sum_cpp(temp_j));
-      }
-
-    }// for s->S
-
-    /***********************************************
-    compute predictedLable Unsup and compute results
-    ***********************************************/
-
-    ///////// classify training samples
-    IntVec predictedLableTrainUnsup(N);
-    predictedLableTrainUnsup = 0;
-    double sum_classify = 0;
-
-    for (int i = 0; i < N; i++) {
-      matrix<double, 0, 1> colm_temp;
-      colm_temp = colm(modelOutTrainUnsup, i);
-      predictedLableTrainUnsup(i) = min_idx_cpp(colm_temp);
-      sum_classify += predictedLableTrainUnsup(i) == trls(i);
-    }
-    double CCRQuadTrainUnsup = sum_classify / N * 100;
-    cout << "train_unsup:" << CCRQuadTrainUnsup << endl;
-
-    ///////// classify testing samples
-    IntVec predictedLableTestUnsup(N_test);
-    predictedLableTestUnsup = 0;
-    sum_classify = 0;
-
-    for (int i = 0; i < N_test; i++) {
-      matrix<double, 0, 1> colm_temp;
-      colm_temp = colm(modelOutTestUnsup, i);
-      predictedLableTestUnsup(i) = min_idx_cpp(colm_temp);
-      sum_classify += predictedLableTestUnsup(i) == ttls(i);
-    }
-    double CCRQuadTestUnsup = sum_classify / N_test * 100;
-    cout << "test_unsup:" << CCRQuadTestUnsup << endl;
-
-  } // if root
+  computeWandB(number_classes, S, N, N_test, d, trls, ttls, Atr, Att, modelQuadUnsup_W, modelQuadUnsup_b);
 
   /*****************************************
   begin Sup learning, get DSup and new W b
   *****************************************/
 
-  // DataMat DSup(sum(n), d);
+//   DataMat DSup(sum(n), d);
 
-  // OnlineSupTaskDrivDicLeaDecFusJointQuadC(XArr, outputVectorTrain, 
-  //     n, d, DUnsup, DSup, modelQuadUnsup_W, modelQuadUnsup_b[0], rank, ProcSize);
+//   OnlineSupTaskDrivDicLeaDecFusJointQuadC(XArr, outputVectorTrain, 
+//       n, d, DUnsup, DSup, modelQuadUnsup_W, modelQuadUnsup_b[0], rank, ProcSize);
 
-  /*************************
-  train sample admm feature
-  *************************/
+//   /*************************
+//   train sample admm feature
+//   *************************/
 
+//   DataMat Atr_sup;
 
+//   Atr_sup = zeros_matrix<Dtype>(d * S, N);
 
+//   ADMM_CG_xwt(DSup, XArr, n, S, lambda, rho, iterADMM, Atr_sup, tolCG, iterCG);
 
+//   /*************************
+//   test sample admm feature
+//   *************************/
+//   DataMat Att_sup;
+
+//   Att_sup = zeros_matrix<Dtype>(d * S, N_test);
+
+//   ADMM_CG_xwt(DSup, YArr, n, S, lambda, rho, iterADMM, Att_sup, tolCG, iterCG);
+
+//   /*************************************
+//   let admm feature multiple with W and b
+//   *************************************/
+
+//   DataMat modelOutTrainSup = zeros_matrix<Dtype>(number_classes, N);
+//   DataMat modelOutTestSup = zeros_matrix<Dtype>(number_classes, N_test);
+
+// #ifdef USE_OMP
+// #pragma omp parallel for
+// #endif
+//   for (int s = 0; s < S; ++s) {
+//     std::cout << "s:" << s << std::endl;
+
+//     int temp = d*s;
+
+//       // Atr -> modelOutTrainSup
+//     DataMat temp_Atr(d, N);
+//     temp_Atr = rowm(Atr_sup, range(temp, temp + d - 1));
+
+//     DataMat modelOutTrainTemp(number_classes, N);
+//     modelOutTrainTemp = trans(modelQuadUnsup_W[s]) * temp_Atr + repmat_cpp(modelQuadUnsup_b[s], 1, N);
+
+//     for (int j = 0; j < N; j++) {
+//       DataMat moTrj = colm(modelOutTrainTemp, j);
+
+//       DataMat temp_j =
+//       repmat_cpp(moTrj, 1, number_classes) -
+//       identity_matrix<Dtype>(number_classes);
+
+//       temp_j = pointwise_multiply(temp_j, temp_j);
+
+//       set_colm(modelOutTrainSup, j) =
+//       colm(modelOutTrainSup, j) + trans(sum_cpp(temp_j));
+//     } // for j
+
+//       // Att -> modelOutTestSup
+//     DataMat temp_Att(d, N_test);
+//     temp_Att = rowm(Att_sup, range(temp, temp + d - 1));
+
+//     DataMat modelOutTestTemp(number_classes, N_test);
+//     modelOutTestTemp = trans(modelQuadUnsup_W[s]) * temp_Att + repmat_cpp(modelQuadUnsup_b[s], 1, N);
+
+//     for (int j = 0; j < N_test; j++) {
+//       DataMat moTej = colm(modelOutTestTemp, j);
+//       DataMat temp_j =
+//       repmat_cpp(moTej, 1, number_classes) -
+//       identity_matrix<Dtype>(number_classes);
+//       temp_j = pointwise_multiply(temp_j, temp_j);
+//       set_colm(modelOutTestSup, j) =
+//       colm(modelOutTestSup, j) + trans(sum_cpp(temp_j));
+//     }//for j
+
+//   }//for s->S
+
+//   /*********************************************************************************
+//   modelOutTrainSup modelOutTestSup => predictLableTrainSup predictLableTestSup
+//   *********************************************************************************/
+//     // classify train samples
+//   IntVec predictedLableTrainSup(N);
+//   predictedLableTrainSup = 0;
+//   sum_classify = 0;
+
+//   for (int i = 0; i < N; i++) {
+//     matrix<double, 0, 1> colm_temp;
+//     colm_temp = colm(modelOutTrainSup, i);
+//     predictedLableTrainSup(i) = min_idx_cpp(colm_temp);
+//     sum_classify += predictedLableTrainSup(i) == trls(i);
+//   }
+//   double CCRQuadTrainSup = sum_classify / N * 100;
+//   cout << "train_Sup:" << CCRQuadTrainSup << endl;
+
+//     // classify testing samples
+//   IntVec predictedLableTestSup(N_test);
+//   predictedLableTestSup = 0;
+//   sum_classify = 0;
+
+//   for (int i = 0; i < N_test; i++) {
+//     matrix<double, 0, 1> colm_temp;
+//     colm_temp = colm(modelOutTestSup, i);
+//     predictedLableTestSup(i) = min_idx_cpp(colm_temp);
+//     sum_classify += predictedLableTestSup(i) == ttls(i);
+//   }
+//   double CCRQuadTestSup = sum_classify / N_test * 100;
+//   cout << "test_Sup:" << CCRQuadTestSup << endl;
 
 
   MPI_Finalize();

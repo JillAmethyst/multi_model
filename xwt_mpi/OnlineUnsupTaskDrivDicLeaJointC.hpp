@@ -13,6 +13,6 @@
 #include "multimodal_variables.hpp"
 
 int OnlineUnsupTaskDrivDicLeaJointC(const DataMat& XArr, const IntVec& trls,
-  const IntVec& n, const int d, DataMat& D, int rank, int ProcSize);
+  const IntVec& n, const int d, DataMat& D, const int N);
 
 #endif

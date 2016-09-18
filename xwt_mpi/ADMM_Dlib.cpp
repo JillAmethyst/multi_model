@@ -1,4 +1,5 @@
 #include "ADMM_Dlib.hpp"
+#include <mpi.h>
 #ifdef USE_OMP
 #include <omp.h>
 #endif
@@ -298,20 +299,16 @@ void ADMM_CG_xwt(DataMat& D, DataMat& XArr, const IntVec& n, const int S,
   Dtype lambda = Lambda / rho;
   const int SampleNum = XArr.nc();
 
-
-  // DataMat dtx( d, S);
-
-  // std::vector<int> iterloop(S);
-  // std::vector<Dtype> tolloop(S);
-  // for (int s = 0; s<S; s++) {
-  //   iterloop[s] = iterCG;
-  //   tolloop[s] = tolCG; 
-  // }
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 
 #ifdef USE_OMP
 #pragma omp parallel for private(temp) //firstprivate(iterloop, tolloop) 
 #endif
   for (int i = 0; i < SampleNum; ++i) {
+    if(i%100 == 0) 
+      cout<<"rank "<<rank<<" SampleNum:"<<i<<" "<<endl;
+
     Dtype scale;
     DataMat u(d, S);
     DataMat B(d, S);

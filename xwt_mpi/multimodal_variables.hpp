@@ -8,6 +8,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <mpi.h>
 
 // project-wide dependency
 #include "Eigen/Dense"
